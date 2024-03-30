@@ -2,8 +2,5 @@
   "platforms": ["ios", "tvos", "android", "web"],
   "ios": {
     "modules": ["ExpoBgtwnModule"]
-  },
-  "android": {
-    "modules": ["expo.modules.bgtwn.ExpoBgtwnModule"]
   }
 }

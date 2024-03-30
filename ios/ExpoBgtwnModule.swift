@@ -1,44 +1,78 @@
+
 import ExpoModulesCore
+let ON_EXPIRATION_EVENT = "onExpirationEvent"
 
 public class ExpoBgtwnModule: Module {
-  // Each module class must implement the definition function. The definition consists of components
-  // that describes the module's functionality and behavior.
-  // See https://docs.expo.dev/modules/module-api for more details about available components.
-  public func definition() -> ModuleDefinition {
-    // Sets the name of the module that JavaScript code will use to refer to the module. Takes a string as an argument.
-    // Can be inferred from module's class name, but it's recommended to set it explicitly for clarity.
-    // The module will be accessible from `requireNativeModule('ExpoBgtwn')` in JavaScript.
-    Name("ExpoBgtwn")
+    var backgroundTaskIdentifiers: [UIBackgroundTaskIdentifier] = []
 
-    // Sets constant properties on the module. Can take a dictionary or a closure that returns a dictionary.
-    Constants([
-      "PI": Double.pi
-    ])
+    // Each module class must implement the definition function. The definition consists of components
+    // that describes the module's functionality and behavior.
+    // See https://docs.expo.dev/modules/module-api for more details about available components.
+    public func definition() -> ModuleDefinition {
+        Events(ON_EXPIRATION_EVENT)
 
-    // Defines event names that the module can send to JavaScript.
-    Events("onChange")
+        // Sets the name of the module that JavaScript code will use to refer to the module. Takes a string as an argument.
+        // Can be inferred from module's class name, but it's recommended to set it explicitly for clarity.
+        // The module will be accessible from `requireNativeModule('ExpoBgtwn')` in JavaScript.
+        Name("ExpoBgtwn")
 
-    // Defines a JavaScript synchronous function that runs the native code on the JavaScript thread.
-    Function("hello") {
-      return "Hello world! 👋"
+        AsyncFunction("startForegroundAction") { (promise: Promise) in
+
+            var backgroundTaskIdentifier: UIBackgroundTaskIdentifier = .invalid
+
+            backgroundTaskIdentifier = UIApplication.shared.beginBackgroundTask {
+                // Expiration block, perform cleanup including endBackgroundTask
+                self.onExpiration(amount: UIApplication.shared.backgroundTimeRemaining, identifier:backgroundTaskIdentifier);
+                UIApplication.shared.endBackgroundTask(backgroundTaskIdentifier)
+            }
+            backgroundTaskIdentifiers.append(backgroundTaskIdentifier)
+            print(backgroundTaskIdentifier.rawValue);
+            promise.resolve(backgroundTaskIdentifier.rawValue)
+
+        }
+        AsyncFunction("stopForegroundAction") { (taskIdentifier: Int, promise: Promise) in
+            let backgroundTaskID = UIBackgroundTaskIdentifier.init(rawValue: taskIdentifier);
+
+            if backgroundTaskID == .invalid {
+                print("Background task with identifier \(taskIdentifier) does not exist or has already been ended")
+                promise.resolve()
+                return
+            }
+
+            if let index = backgroundTaskIdentifiers.firstIndex(where: {$0.rawValue == taskIdentifier}) {
+                backgroundTaskIdentifiers.remove(at: index)
+            }
+            UIApplication.shared.endBackgroundTask(backgroundTaskID)
+
+            promise.resolve()
+        }
+
+        AsyncFunction("forceStopAllForegroundActions") { (promise: Promise) in
+            for identifier in backgroundTaskIdentifiers {
+                print("Stopping identifier:",identifier.rawValue)
+                UIApplication.shared.endBackgroundTask(identifier)
+            }
+            backgroundTaskIdentifiers.removeAll()
+            promise.resolve()
+        }
+
+
+        AsyncFunction("getBackgroundTimeRemaining") { (promise: Promise) in
+            promise.resolve(UIApplication.shared.backgroundTimeRemaining)
+        }
+
+        AsyncFunction("getForegroundIdentifiers") { (promise: Promise) in
+            let identifierValues = backgroundTaskIdentifiers.map { $0.rawValue }
+            promise.resolve(identifierValues)
+        }
+
     }
 
-    // Defines a JavaScript function that always returns a Promise and whose native code
-    // is by default dispatched on the different thread than the JavaScript runtime runs on.
-    AsyncFunction("setValueAsync") { (value: String) in
-      // Send an event to JavaScript.
-      self.sendEvent("onChange", [
-        "value": value
-      ])
+    @objc
+    private func onExpiration(amount:Double,identifier:UIBackgroundTaskIdentifier) {
+        sendEvent(ON_EXPIRATION_EVENT, [
+            "remaining": amount,
+            "identifier": identifier.rawValue
+        ])
     }
-
-    // Enables the module to be used as a native view. Definition components that are accepted as part of the
-    // view definition: Prop, Events.
-    View(ExpoBgtwnView.self) {
-      // Defines a setter for the `name` prop.
-      Prop("name") { (view: ExpoBgtwnView, prop: String) in
-        print(prop)
-      }
-    }
-  }
 }

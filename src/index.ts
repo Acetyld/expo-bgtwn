@@ -1,26 +1,35 @@
-import { NativeModulesProxy, EventEmitter, Subscription } from 'expo-modules-core';
-
 // Import the native module. On web, it will be resolved to ExpoBgtwn.web.ts
 // and on native platforms to ExpoBgtwn.ts
-import ExpoBgtwnModule from './ExpoBgtwnModule';
-import ExpoBgtwnView from './ExpoBgtwnView';
-import { ChangeEventPayload, ExpoBgtwnViewProps } from './ExpoBgtwn.types';
+import { Platform } from "react-native";
 
-// Get the native constant value.
-export const PI = ExpoBgtwnModule.PI;
+import ExpoBgtwnModule from "./ExpoBgtwnModule";
+import { EventEmitter, NativeModulesProxy, Subscription } from "expo-modules-core";
+import { ExpireEventPayload } from "./ExpoBgtwnModule.types";
+const emitter = Platform.OS === 'ios' ? new EventEmitter(
+  ExpoBgtwnModule ?? NativeModulesProxy.ExpoForegroundActions
+): null;
 
-export function hello(): string {
-  return ExpoBgtwnModule.hello();
+export const startForegroundAction = async (): Promise<number> => {
+  if (Platform.OS !== "ios") {
+    return 0;
+  }
+  return ExpoBgtwnModule.startForegroundAction();
+};
+export const stopForegroundAction = async (id: number): Promise<void> => {
+  await ExpoBgtwnModule.stopForegroundAction(id);
+};
+
+export const forceStopAllForegroundActions = async (): Promise<void> => {
+  await ExpoBgtwnModule.forceStopAllForegroundActions();
+};
+
+export const getBackgroundTimeRemaining = async (): Promise<number> => {
+  if (Platform.OS !== "ios") return -1;
+  return await ExpoBgtwnModule.getBackgroundTimeRemaining();
+};
+export function addExpirationListener(
+  listener: (event: ExpireEventPayload) => void
+): Subscription {
+
+  return emitter ? emitter.addListener("onExpirationEvent", listener): { remove: () => {} };
 }
-
-export async function setValueAsync(value: string) {
-  return await ExpoBgtwnModule.setValueAsync(value);
-}
-
-const emitter = new EventEmitter(ExpoBgtwnModule ?? NativeModulesProxy.ExpoBgtwn);
-
-export function addChangeListener(listener: (event: ChangeEventPayload) => void): Subscription {
-  return emitter.addListener<ChangeEventPayload>('onChange', listener);
-}
-
-export { ExpoBgtwnView, ExpoBgtwnViewProps, ChangeEventPayload };
