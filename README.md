@@ -8,7 +8,7 @@ the user swipes away mid-request. iOS grants roughly 30 seconds; the module ends
 when that budget runs out and emits `onExpirationEvent` so you can persist or cancel.
 
 - Apple only (iOS, tvOS). On Android and web every call is a no-op that resolves immediately.
-- Expo SDK 57+ (Expo Modules API with Swift macros). For SDK 50 to 56 use `expo-bgtwn@0.1.x`.
+- Expo SDK 57+ (Expo Modules API, definition DSL). For SDK 50 to 56 use `expo-bgtwn@0.1.x`.
 - Not a replacement for `expo-background-task` / BGTaskScheduler. This is the short "finish what you started" window, nothing periodic.
 
 ## Install
@@ -60,7 +60,8 @@ Every `startForegroundAction()` must be paired with `stopForegroundAction()`; iO
 
 ### 0.2.0
 
-- Rewritten for Expo SDK 57: Swift `@ExpoModule` / `@JS` / `@Event` macros, typed `NativeModule` events, `requireOptionalNativeModule` (Android and web become no-ops instead of `Platform.OS` checks).
+- Rewritten for Expo SDK 57: typed `NativeModule` events, `requireOptionalNativeModule` (Android and web become no-ops instead of `Platform.OS` checks), every native call pinned to the main queue.
+- Swift side stays on the definition DSL. The SDK 57 macros (`@ExpoModule` / `@JS async`) compiled but crashed Hermes when a promise resolved while the app was moving to the background (EXC_BAD_ACCESS in `expo::callFunction`, iOS 26.5, expo-modules-core 57.0.18). Revisit when the macros leave experimental status in SDK 58.
 - New `getForegroundIdentifiers()` export, `isAvailable`, `INVALID_TASK_IDENTIFIER`.
 - Expiration handler now also removes the task from the tracked list; `stopForegroundAction` ignores unknown ids.
 - `ExpireEventPayload` kept as a deprecated alias of `ExpirationEventPayload`.
