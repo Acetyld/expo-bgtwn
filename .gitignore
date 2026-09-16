@@ -8,7 +8,9 @@ jsconfig.json
 
 # Xcode
 #
-build/
+# Root build/ is committed so the package works as a git dependency.
+example/ios/
+example/android/
 *.pbxuser
 !default.pbxuser
 *.mode1v3

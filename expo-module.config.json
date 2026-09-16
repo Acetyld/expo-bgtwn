@@ -1,6 +1,6 @@
 {
-  "platforms": ["ios", "tvos", "android", "web"],
-  "ios": {
+  "platforms": ["apple"],
+  "apple": {
     "modules": ["ExpoBgtwnModule"]
   }
 }

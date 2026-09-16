@@ -1,5 +1,15 @@
-import { requireNativeModule } from 'expo-modules-core';
+import { NativeModule, requireOptionalNativeModule } from 'expo';
 
-// It loads the native module object from the JSI or falls back to
-// the bridge module (from NativeModulesProxy) if the remote debugger is on.
-export default requireNativeModule('ExpoBgtwn');
+import { ExpoBgtwnModuleEvents } from './ExpoBgtwn.types';
+
+declare class ExpoBgtwnModule extends NativeModule<ExpoBgtwnModuleEvents> {
+  startForegroundAction(): Promise<number>;
+  stopForegroundAction(taskIdentifier: number): Promise<void>;
+  forceStopAllForegroundActions(): Promise<void>;
+  getBackgroundTimeRemaining(): Promise<number>;
+  getForegroundIdentifiers(): Promise<number[]>;
+}
+
+// The native side only exists on Apple platforms (UIApplication.beginBackgroundTask).
+// On Android and web this resolves to `null` and every export becomes a no-op.
+export default requireOptionalNativeModule<ExpoBgtwnModule>('ExpoBgtwn');
